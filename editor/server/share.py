@@ -13,12 +13,18 @@ from flask import (
 )
 from jinja2 import Environment, select_autoescape
 
-from cloudflare_error_page import render as render_cf_error_page, fill_params, default_template as cf_template
+from cloudflare_error_page import (
+    fill_params as fill_template_params,
+    default_template as cf_template
+)
 
-from . import get_common_cf_template_params
-from . import db
-from . import limiter
-from . import models
+from . import (
+    db,
+    limiter,
+    models
+)
+
+from .utils import fill_cf_template_params
 
 # root_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../')
 # examples_dir = os.path.join(root_dir, 'examples')
@@ -89,7 +95,7 @@ def get(name: str):
     if not item:
         if is_json:
             return jsonify({
-                'status': 'not-found'
+                'status': 'notfound'
             })
         else:
             return abort(404)
@@ -104,22 +110,19 @@ def get(name: str):
             'parameters': params,
         })
     else:
-        params = {
-            **params,
-            **get_common_cf_template_params(),
-        }
         params['creator_info'] = {
             'hidden': False,
             'text': 'CF Error Page Editor',
             'link': f'https://virt.moe/cloudflare-error-page/editor/#from={name}',
         }
-        fill_params(params)
+        # Always escape HTML
         params['what_happened'] = html.escape(params.get('what_happened', '')) # TODO: common render function?
         params['what_can_i_do'] = html.escape(params.get('what_can_i_do', ''))
+        fill_cf_template_params(params)
+        fill_template_params(params)
 
         return template.render(base=cf_template,
                                params=params,
                                url=request.url,
                                description='Cloudflare error page',
                                resources_use_cdn=True)
-        # return render_cf_error_page(params=params, allow_html=False, use_cdn=True), 200

@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import copy
 import os
 import re
 
@@ -10,8 +11,8 @@ from flask import (
     redirect,
 )
 
-from . import get_common_cf_template_params
 from cloudflare_error_page import render as render_cf_error_page
+from .utils import fill_cf_template_params
 
 root_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../')
 examples_dir = os.path.join(root_dir, 'examples')
@@ -25,12 +26,12 @@ def get_page_params(name: str) -> dict:
     name = re.sub(r'[^\w]', '', name)
     params = param_cache.get(name)
     if params is not None:
-        return params
+        return copy.deepcopy(params)
     try:
         with open(os.path.join(examples_dir, f'{name}.json')) as f:
             params = json.load(f)
         param_cache[name] = params
-        return params
+        return copy.deepcopy(params)
     except Exception as _:
         return None
 
@@ -49,10 +50,7 @@ def index(name: str):
     if params is None:
         abort(404)
 
-    params = {
-        **params,
-        **get_common_cf_template_params(),
-    }
+    fill_cf_template_params(params)
 
     # Render the error page
-    return render_cf_error_page(params, use_cdn=True), 500
+    return render_cf_error_page(params, use_cdn=True)

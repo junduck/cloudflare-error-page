@@ -1,5 +1,6 @@
 # SPDX-License-Identifier: MIT
 
+import json
 import os
 import secrets
 import string
@@ -52,6 +53,7 @@ def create_app(test_config=None) -> Flask:
     url_prefix = os.getenv('URL_PREFIX', '')
 
 
+    from . import utils
     from . import models
     from . import examples
     from . import editor
@@ -85,20 +87,6 @@ def create_app(test_config=None) -> Flask:
 
     return app
 
-
-def get_common_cf_template_params():
-    # Get real Ray ID from Cloudflare header
-    ray_id = request.headers.get('Cf-Ray')
-    if ray_id:
-        ray_id = ray_id[:16]
-    # Get real client ip from Cloudflare header or request.remote_addr
-    client_ip = request.headers.get('X-Forwarded-For')
-    if not client_ip:
-        client_ip = request.remote_addr
-    return {
-        'ray_id': ray_id,
-        'client_ip': client_ip,
-    }
 
 
 __all__ = ['create_app', 'db', 'get_common_cf_template_params', 'render_cf_error_page']
